@@ -226,3 +226,5 @@ gmail-reply-generator/
 └── public/
     └── index.html     ← Frontend UI
 ```
+access this app directly 
+gmail-reply-generator.vercel.app

@@ -571,7 +571,7 @@
 
       try {
         // Send request to our backend server
-        const response = await fetch('http://localhost:3000/generate-reply', {
+        const response = await fetch('/generate-reply', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

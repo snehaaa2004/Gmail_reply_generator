@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gmail Reply Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ========================
+       CSS VARIABLES & RESET
+    ======================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #14171f;
+      --surface2: #1c2030;
+      --border: rgba(255,255,255,0.07);
+      --border-active: rgba(99,179,237,0.5);
+      --accent: #63b3ed;
+      --accent2: #9f7aea;
+      --accent-glow: rgba(99,179,237,0.15);
+      --text: #e8eaf0;
+      --text-muted: #6b7280;
+      --text-dim: #9ca3af;
+      --success: #68d391;
+      --error: #fc8181;
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ========================
+       ANIMATED BACKGROUND
+    ======================== */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.12;
+      animation: drift 20s ease-in-out infinite;
+    }
+    .orb-1 { width: 500px; height: 500px; background: #63b3ed; top: -150px; left: -100px; animation-delay: 0s; }
+    .orb-2 { width: 400px; height: 400px; background: #9f7aea; bottom: -100px; right: -100px; animation-delay: -7s; }
+    .orb-3 { width: 300px; height: 300px; background: #68d391; top: 50%; left: 50%; transform: translate(-50%,-50%); animation-delay: -14s; }
+
+    @keyframes drift {
+      0%, 100% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(30px,-20px) scale(1.05); }
+      66% { transform: translate(-20px,30px) scale(0.95); }
+    }
+
+    /* ========================
+       LAYOUT
+    ======================== */
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ========================
+       HEADER
+    ======================== */
+    header {
+      text-align: center;
+      margin-bottom: 52px;
+      animation: fadeUp 0.7s ease both;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .logo-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #e8eaf0 30%, #63b3ed 70%, #9f7aea 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 14px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      font-weight: 300;
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ========================
+       CARD
+    ======================== */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.7s ease both;
+      animation-delay: 0.15s;
+      transition: border-color 0.3s;
+    }
+    .card:hover { border-color: rgba(255,255,255,0.12); }
+
+    /* ========================
+       FORM ELEMENTS
+    ======================== */
+    .field { margin-bottom: 24px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    label span.required {
+      color: var(--error);
+      margin-left: 3px;
+    }
+
+    textarea, select, input[type="text"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      padding: 14px 16px;
+      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+      outline: none;
+      resize: vertical;
+    }
+
+    textarea { min-height: 130px; line-height: 1.7; }
+
+    textarea:focus, select:focus, input[type="text"]:focus {
+      border-color: var(--border-active);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+      background: #1a1f2e;
+    }
+
+    textarea::placeholder, input::placeholder { color: var(--text-muted); }
+
+    select {
+      appearance: none;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 40px;
+    }
+
+    /* Two-column grid for smaller fields */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 600px) { .field-row { grid-template-columns: 1fr; } }
+
+    /* ========================
+       TONE PILLS
+    ======================== */
+    .tone-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill {
+      cursor: pointer;
+      padding: 8px 18px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+
+    .pill.active {
+      background: linear-gradient(135deg, rgba(99,179,237,0.2), rgba(159,122,234,0.2));
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Tone icons */
+    .pill[data-tone="Professional"]::before { content: '💼 '; }
+    .pill[data-tone="Casual"]::before { content: '😊 '; }
+    .pill[data-tone="Friendly"]::before { content: '👋 '; }
+    .pill[data-tone="Formal"]::before { content: '🎩 '; }
+    .pill[data-tone="Enthusiastic"]::before { content: '🚀 '; }
+    .pill[data-tone="Empathetic"]::before { content: '💙 '; }
+
+    /* ========================
+       GENERATE BUTTON
+    ======================== */
+    .btn-generate {
+      width: 100%;
+      padding: 17px 32px;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, #4299e1, #667eea, #9f7aea);
+      background-size: 200% 200%;
+      color: #fff;
+      transition: transform 0.2s, box-shadow 0.2s, background-position 0.4s;
+      animation: gradientShift 4s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .btn-generate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(99,179,237,0.35);
+    }
+
+    .btn-generate:active { transform: translateY(0); }
+
+    .btn-generate:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-generate .btn-text { transition: opacity 0.2s; }
+    .btn-generate .spinner { display: none; }
+
+    .btn-generate.loading .btn-text { display: none; }
+    .btn-generate.loading .spinner { display: inline-flex; align-items: center; gap: 10px; }
+
+    .spin-ring {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ========================
+       OUTPUT SECTION
+    ======================== */
+    .output-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      animation: fadeUp 0.5s ease both;
+      display: none;
+    }
+
+    .output-card.visible { display: block; }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .output-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .tone-tag {
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: rgba(99,179,237,0.15);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid rgba(99,179,237,0.3);
+    }
+
+    .output-actions { display: flex; gap: 10px; }
+
+    .btn-action {
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-action:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+    .btn-action.copied { border-color: var(--success); color: var(--success); background: rgba(104,211,145,0.1); }
+
+    .output-body {
+      padding: 28px;
+    }
+
+    #replyText {
+      font-size: 0.97rem;
+      line-height: 1.85;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Typing animation */
+    .typing-cursor::after {
+      content: '|';
+      animation: blink 0.7s step-end infinite;
+      color: var(--accent);
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* ========================
+       ERROR STATE
+    ======================== */
+    .error-banner {
+      display: none;
+      background: rgba(252,129,129,0.1);
+      border: 1px solid rgba(252,129,129,0.3);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      color: var(--error);
+      font-size: 0.9rem;
+      margin-top: 16px;
+      align-items: center;
+      gap: 10px;
+    }
+    .error-banner.visible { display: flex; }
+
+    /* ========================
+       FOOTER
+    ======================== */
+    footer {
+      text-align: center;
+      margin-top: 48px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+
+    /* ========================
+       ANIMATIONS
+    ======================== */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Stagger delays */
+    .card { animation-delay: 0.1s; }
+    .action-row { animation: fadeUp 0.7s ease both; animation-delay: 0.25s; }
+  </style>
+</head>
+<body>
+
+  <!-- Animated background -->
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <!--<div class="logo-badge">AI Powered · Claude</div> -->
+      <h1>Gmail Reply Generator</h1>
+      <p class="subtitle">Paste any email, choose your tone, and get a perfect reply in seconds — ENJOYY.</p>
+    </header>
+
+    <!-- Input Card -->
+    <div class="card">
+
+      <!-- Original Email -->
+      <div class="field">
+        <label>Original Email <span class="required">*</span></label>
+        <textarea id="emailInput" placeholder="Paste the email you received here…"></textarea>
+      </div>
+
+      <!-- Sender Name + Extra Context row -->
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0">
+          <label>Your Name (Optional)</label>
+          <input type="text" id="senderName" placeholder="e.g. Alex" />
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Extra Context (Optional)</label>
+          <input type="text" id="extraContext" placeholder="e.g. I want to reschedule" />
+        </div>
+      </div>
+
+      <!-- Tone Selector -->
+      <div class="field" style="margin-top:24px">
+        <label>Reply Tone</label>
+        <div class="tone-pills" id="tonePills">
+          <div class="pill active" data-tone="Professional">Professional</div>
+          <div class="pill" data-tone="Casual">Casual</div>
+          <div class="pill" data-tone="Friendly">Friendly</div>
+          <div class="pill" data-tone="Formal">Formal</div>
+          <div class="pill" data-tone="Enthusiastic">Enthusiastic</div>
+          <div class="pill" data-tone="Empathetic">Empathetic</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Generate Button -->
+    <div class="action-row">
+      <button class="btn-generate" id="generateBtn" onclick="generateReply()">
+        <span class="btn-text">✨ Generate Reply</span>
+        <span class="spinner">
+          <span class="spin-ring"></span>
+          Generating your reply…
+        </span>
+      </button>
+      <div class="error-banner" id="errorBanner">
+        <span>⚠️</span>
+        <span id="errorMsg">Something went wrong.</span>
+      </div>
+    </div>
+
+    <!-- Output Card (hidden until reply is generated) -->
+    <div class="output-card" id="outputCard" style="margin-top:28px">
+      <div class="output-header">
+        <div class="output-title">
+          Generated Reply
+          <span class="tone-tag" id="toneLabel">Professional</span>
+        </div>
+        <div class="output-actions">
+          <button class="btn-action" id="regenerateBtn" onclick="generateReply()">↺ Regenerate</button>
+          <button class="btn-action" id="copyBtn" onclick="copyReply()">📋 Copy</button>
+        </div>
+      </div>
+      <div class="output-body">
+        <div id="replyText"></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>Built with ❤️ by Snehaa Mondal  
+      </p>
+    </footer>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // JavaScript — Controls the UI behaviour
+    // ==========================================
+
+    // Track selected tone
+    let selectedTone = "Professional";
+
+    // Handle tone pill clicks
+    document.querySelectorAll('.pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        selectedTone = pill.dataset.tone;
+      });
+    });
+
+    // -----------------------------------------------
+    // MAIN FUNCTION: Called when user clicks Generate
+    // -----------------------------------------------
+    async function generateReply() {
+      const emailInput = document.getElementById('emailInput').value.trim();
+      const senderName = document.getElementById('senderName').value.trim();
+      const extraContext = document.getElementById('extraContext').value.trim();
+      const btn = document.getElementById('generateBtn');
+      const errorBanner = document.getElementById('errorBanner');
+
+      // Validate
+      if (!emailInput) {
+        showError("Please paste the email content first!");
+        document.getElementById('emailInput').focus();
+        return;
+      }
+
+      // Reset UI
+      hideError();
+      setLoading(true);
+
+      try {
+        // Send request to our backend server
+        const response = await fetch('http://localhost:3000/generate-reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            emailContent: emailInput,
+            tone: selectedTone,
+            senderName: senderName,
+            context: extraContext
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Server error');
+        }
+
+        // Show the reply with a nice typing animation
+        showReply(data.reply);
+
+      } catch (err) {
+        if (err.message.includes('fetch')) {
+          showError("Cannot connect to server. Make sure you ran: node server.js");
+        } else {
+          showError(err.message);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // -----------------------------------------------
+    // Show reply with typing animation
+    // -----------------------------------------------
+    function showReply(text) {
+      const outputCard = document.getElementById('outputCard');
+      const replyText = document.getElementById('replyText');
+      const toneLabel = document.getElementById('toneLabel');
+
+      outputCard.classList.add('visible');
+      toneLabel.textContent = selectedTone;
+
+      // Animate the text appearing character by character
+      replyText.textContent = '';
+      replyText.classList.add('typing-cursor');
+
+      let i = 0;
+      const speed = 12; // milliseconds per character
+
+      function typeChar() {
+        if (i < text.length) {
+          replyText.textContent += text[i];
+          i++;
+          setTimeout(typeChar, speed);
+        } else {
+          replyText.classList.remove('typing-cursor');
+        }
+      }
+
+      typeChar();
+
+      // Scroll to output
+      setTimeout(() => {
+        outputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+
+    // -----------------------------------------------
+    // Copy to clipboard
+    // -----------------------------------------------
+    async function copyReply() {
+      const text = document.getElementById('replyText').textContent;
+      const btn = document.getElementById('copyBtn');
+
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = '✅ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = '📋 Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      } catch (e) {
+        // Fallback for older browsers
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = '✅ Copied!';
+      }
+    }
+
+    // -----------------------------------------------
+    // UI Helper Functions
+    // -----------------------------------------------
+    function setLoading(isLoading) {
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = isLoading;
+      if (isLoading) {
+        btn.classList.add('loading');
+      } else {
+        btn.classList.remove('loading');
+      }
+    }
+
+    function showError(msg) {
+      const banner = document.getElementById('errorBanner');
+      document.getElementById('errorMsg').textContent = msg;
+      banner.classList.add('visible');
+    }
+
+    function hideError() {
+      document.getElementById('errorBanner').classList.remove('visible');
+    }
+
+    // Allow Ctrl+Enter to generate
+    document.getElementById('emailInput').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        generateReply();
+      }
+    });
+  </script>
+</body>
+</html>

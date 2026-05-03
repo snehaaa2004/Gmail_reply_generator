@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: gmail-reply-generator
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server-free.js
+    envVars:
+      - key: NODE_ENV
+        value: production
